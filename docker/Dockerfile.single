@@ -1,0 +1,46 @@
+# Single-container build: FastAPI serves both the API and the built React
+# frontend directly (see main.py's static-file block), so this needs only
+# one process/port -- required by free hosts like Hugging Face Spaces that
+# don't support docker-compose's multi-container setup.
+#
+# For a VPS/cloud deploy where you control multiple containers, use
+# docker-compose.yml + Dockerfile.backend + Dockerfile.frontend instead;
+# that setup (nginx + separate backend) scales better and is the one this
+# README's main deployment section walks through.
+
+FROM node:22-slim AS frontend-build
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+# Empty base URL -> relative paths (/chat/, /auth/, ...) since the
+# frontend and API are served from the exact same origin here, unlike the
+# nginx setup which proxies a separate /api/ prefix.
+ENV VITE_API_BASE_URL=""
+RUN npm run build
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    tesseract-ocr \
+    tesseract-ocr-all \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ .
+COPY --from=frontend-build /app/dist ./static
+
+RUN mkdir -p uploads chroma_db data
+
+# Hugging Face Spaces' Docker SDK expects the app on port 7860 by default;
+# most other free hosts (Fly.io, Render) inject their own $PORT instead.
+# This works with either.
+ENV PORT=7860
+EXPOSE 7860
+
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT}"]

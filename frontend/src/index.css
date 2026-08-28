@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+body{
+    margin:0;
+    padding:0;
+    font-family:Inter,sans-serif;
+}
+
+/*
+  Light theme overrides. The app is built dark-first with a small,
+  consistent color vocabulary (bg-slate-900/800/700/600, text-white,
+  text-slate-500/400/300/200, border-slate-700/600) reused across every
+  panel -- rather than touching dozens of component files individually
+  (error-prone without being able to visually verify each one), this
+  remaps that same vocabulary globally when <html> has the "light" class.
+  ThemeContext toggles that class. New components should keep using these
+  same slate/white classes to stay covered by this automatically.
+*/
+html.light body {
+  background-color: #f8fafc;
+}
+
+html.light .bg-slate-900 { background-color: #f8fafc !important; }
+html.light .bg-slate-800 { background-color: #ffffff !important; }
+html.light .bg-slate-700 { background-color: #f1f5f9 !important; }
+html.light .bg-slate-600 { background-color: #e2e8f0 !important; }
+
+html.light .text-white { color: #0f172a !important; }
+html.light .text-slate-200 { color: #334155 !important; }
+html.light .text-slate-300 { color: #475569 !important; }
+html.light .text-slate-400 { color: #64748b !important; }
+html.light .text-slate-500 { color: #64748b !important; }
+
+html.light .border-slate-700 { border-color: #cbd5e1 !important; }
+html.light .border-slate-600 { border-color: #cbd5e1 !important; }
+
+html.light .hover\:bg-slate-600:hover { background-color: #e2e8f0 !important; }
+html.light .hover\:text-white:hover { color: #0f172a !important; }

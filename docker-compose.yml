@@ -1,0 +1,60 @@
+version: "3.9"
+
+# Default LLM provider is now Groq (see backend/.env's LLM_PROVIDER) -- fast,
+# free-tier cloud inference, no local model to run. The commented-out
+# `ollama` service and OLLAMA_HOST override below are only relevant if you
+# set LLM_PROVIDER=ollama in backend/.env for fully local/private inference
+# (slower without a GPU). With Groq as the provider, this whole stack needs
+# far less RAM than before -- no multi-GB model to load into memory.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    env_file:
+      - backend/.env
+    environment:
+      # Override .env's localhost-oriented values for the container network.
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_chroma:/app/chroma_db
+      - backend_db:/app/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    extra_hosts:
+      # Lets the container reach Ollama running on the host machine.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Uncomment to containerize Ollama itself instead of using the host's:
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   restart: unless-stopped
+
+volumes:
+  backend_uploads:
+  backend_chroma:
+  backend_db:
+  # ollama_data:
